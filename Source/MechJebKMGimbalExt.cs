@@ -27,12 +27,16 @@ namespace MuMech
                     maxThrust = ((ModuleEnginesFX)p.Modules["ModuleEnginesFX"]).maxThrust;
                 if (gimbal.enableGimbal)
                 {
-                    double factor = maxThrust * (p.Rigidbody.worldCenterOfMass - CoM).magnitude;
+                    Vector3 factor = (p.Rigidbody.worldCenterOfMass - CoM);
+                    factor *= (float)maxThrust;
                     if (gimbal.enableRoll)
-                        vesselState.torqueAvailable.y += Math.Sin(Math.Abs(Math.Max(gimbal.pitchGimbalRange, gimbal.yawGimbalRange)) * Math.PI / 180) * factor;
-
-                    vesselState.torqueAvailable.x += Math.Sin(Math.Abs(gimbal.pitchGimbalRange) * Math.PI / 180) * factor; // TODO: close enough?
-                    vesselState.torqueAvailable.z += Math.Sin(Math.Abs(gimbal.yawGimbalRange) * Math.PI / 180) * factor; // TODO: close enough?
+                    {
+                        Vector2 rollFactor = new Vector2(factor.x, factor.z);
+                        vesselState.torqueAvailable.y += Math.Sin(Math.Abs(Math.Max(gimbal.pitchGimbalRange, gimbal.yawGimbalRange)) * Math.PI / 180) * rollFactor.magnitude;
+                    }
+                    float mag = factor.magnitude;
+                    vesselState.torqueAvailable.x += Math.Sin(Math.Abs(gimbal.pitchGimbalRange) * Math.PI / 180) * mag; // TODO: close enough?
+                    vesselState.torqueAvailable.z += Math.Sin(Math.Abs(gimbal.yawGimbalRange) * Math.PI / 180) * mag; // TODO: close enough?
                 }
             }
         }
