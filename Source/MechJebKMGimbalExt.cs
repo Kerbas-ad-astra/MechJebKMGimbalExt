@@ -13,38 +13,56 @@ namespace MuMech
     {
         public MechJebKMGimbalExt(MechJebCore core) : base(core) { }
         bool isKMLoaded = false;
-        private void partModuleUpdate(PartModule pm)
+        
+        private bool KM_GimbalIsValid(PartModule p)
         {
-            if (isKMLoaded && pm is KM_Gimbal)
-            {
-                KM_Gimbal gimbal = (KM_Gimbal)pm;
-                Part p = pm.part;
-                Vector3 CoM = vessel.findWorldCenterOfMass();
-                double maxThrust = 0.0;
-                if(p.Modules.Contains("ModuleEngines"))
-                    maxThrust = ((ModuleEngines)p.Modules["ModuleEngines"]).maxThrust;
-                if(p.Modules.Contains("ModuleEnginesFX"))
-                    maxThrust = ((ModuleEnginesFX)p.Modules["ModuleEnginesFX"]).maxThrust;
-                if (gimbal.enableGimbal)
-                {
-                    Vector3 factor = (p.Rigidbody.worldCenterOfMass - CoM);
-                    factor *= (float)maxThrust;
-                    if (gimbal.enableRoll)
-                    {
-                        Vector2 rollFactor = new Vector2(factor.x, factor.z);
-                        vesselState.torqueAvailable.y += Math.Sin(Math.Abs(Math.Max(gimbal.pitchGimbalRange, gimbal.yawGimbalRange)) * Math.PI / 180) * rollFactor.magnitude;
-                    }
-                    float mag = factor.magnitude;
-                    vesselState.torqueAvailable.x += Math.Sin(Math.Abs(gimbal.pitchGimbalRange) * Math.PI / 180) * mag; // TODO: close enough?
-                    vesselState.torqueAvailable.z += Math.Sin(Math.Abs(gimbal.yawGimbalRange) * Math.PI / 180) * mag; // TODO: close enough?
-                }
-            }
+            KM_Gimbal gimbal = p as KM_Gimbal;
+            return gimbal.initRots.Count() > 0;
         }
+
+        private Vector3d KM_GimbalTorqueVector(PartModule p, int i, Vector3d CoM)
+        {
+            KM_Gimbal gimbal = p as KM_Gimbal;
+            Vector3d torque = Vector3d.zero;
+
+            if (!gimbal.enableGimbal)
+                return Vector3d.zero;
+
+            float maxPitchGimbalRange = Math.Min(gimbal.pitchGimbalRange, gimbal.gimbalConstrain);
+            float maxYawGimbalRange = Math.Min(gimbal.pitchGimbalRange, gimbal.gimbalConstrain);
+            float maxRollGimbalRange = Math.Max(maxPitchGimbalRange, maxYawGimbalRange);
+
+            Vector3d position = gimbal.gimbalTransforms[i].position - CoM;
+            double distance = position.magnitude;
+            double radius = Vector3.Exclude(Vector3.Project(position, p.vessel.ReferenceTransform.up), position).magnitude;
+
+            torque.x = Math.Sin(Math.Abs(maxPitchGimbalRange) * Math.PI / 180d) * distance;
+            torque.z = Math.Sin(Math.Abs(maxYawGimbalRange) * Math.PI / 180d) * distance;
+
+            if (gimbal.enableRoll)
+            {
+                torque.y = Math.Sin(Math.Abs(maxRollGimbalRange) * Math.PI / 180d) * radius;
+            }
+
+            return torque;
+        }
+
+        private Quaternion KM_GimbalInitialRot(PartModule p, Transform engineTransform, int i)
+        {
+            KM_Gimbal gimbal = p as KM_Gimbal;
+            return engineTransform.parent.rotation * gimbal.initRots[i];
+        }
+
         public override void OnStart(PartModule.StartState state)
         {
             isKMLoaded = AssemblyLoader.loadedAssemblies.Any(a => a.assembly.GetName().Name == "km_Gimbal_2.0");
             print("MechJebKMGimbalExt adding MJ2 callback");
-            vesselState.vesselStatePartModuleExtensions.Add(partModuleUpdate);
+
+            if (!VesselState.gimbalExtDict.ContainsKey("KM_Gimbal"))
+            {
+                VesselState.GimbalExt kmGimbal = new VesselState.GimbalExt() { isValid = KM_GimbalIsValid, initialRot = KM_GimbalInitialRot, torqueVector = KM_GimbalTorqueVector };
+                VesselState.gimbalExtDict.Add("KM_Gimbal", kmGimbal);
+            }
         }
     }
 }
