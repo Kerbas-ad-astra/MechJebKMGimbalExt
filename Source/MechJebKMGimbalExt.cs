@@ -50,7 +50,14 @@ namespace MuMech
         private Quaternion KM_GimbalInitialRot(PartModule p, Transform engineTransform, int i)
         {
             KM_Gimbal gimbal = p as KM_Gimbal;
-            return engineTransform.parent.rotation * gimbal.initRots[i];
+            // Save the current local rot
+            Quaternion save = gimbal.gimbalTransforms[i].localRotation;
+            // Apply the default rot and let unity compute the world rot
+            gimbal.gimbalTransforms[i].localRotation = gimbal.initRots[i];
+            Quaternion initalRot = gimbal.gimbalTransforms[i].rotation;
+            // Restore the current local rot
+            gimbal.gimbalTransforms[i].localRotation = save;
+            return initalRot;
         }
 
         public override void OnStart(PartModule.StartState state)
