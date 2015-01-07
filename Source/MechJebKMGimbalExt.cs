@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using MuMech;
 using UnityEngine;
-using km_Lib;
+using km_Gimbal;
 using System.Reflection;
 
 namespace MuMech
@@ -16,13 +16,13 @@ namespace MuMech
         
         private bool KM_GimbalIsValid(PartModule p)
         {
-            KM_Gimbal gimbal = p as KM_Gimbal;
+            KM_Gimbal_3 gimbal = p as KM_Gimbal_3;
             return gimbal.initRots.Count() > 0;
         }
 
         private Vector3d KM_GimbalTorqueVector(PartModule p, int i, Vector3d CoM)
         {
-            KM_Gimbal gimbal = p as KM_Gimbal;
+            KM_Gimbal_3 gimbal = p as KM_Gimbal_3;
             Vector3d torque = Vector3d.zero;
 
             if (!gimbal.enableGimbal)
@@ -49,7 +49,7 @@ namespace MuMech
 
         private Quaternion KM_GimbalInitialRot(PartModule p, Transform engineTransform, int i)
         {
-            KM_Gimbal gimbal = p as KM_Gimbal;
+            KM_Gimbal_3 gimbal = p as KM_Gimbal_3;
             // Save the current local rot
             Quaternion save = gimbal.gimbalTransforms[i].localRotation;
             // Apply the default rot and let unity compute the world rot
@@ -62,13 +62,12 @@ namespace MuMech
 
         public override void OnStart(PartModule.StartState state)
         {
-            isKMLoaded = AssemblyLoader.loadedAssemblies.Any(a => a.assembly.GetName().Name == "km_Gimbal_2.0");
+            isKMLoaded = AssemblyLoader.loadedAssemblies.Any(a => a.assembly.GetName().Name == "km_Gimbal");
             print("MechJebKMGimbalExt adding MJ2 callback");
 
-            if (!VesselState.gimbalExtDict.ContainsKey("KM_Gimbal"))
+            if(!VesselState.SupportsGimbalExtension<KM_Gimbal_3>())
             {
-                VesselState.GimbalExt kmGimbal = new VesselState.GimbalExt() { isValid = KM_GimbalIsValid, initialRot = KM_GimbalInitialRot, torqueVector = KM_GimbalTorqueVector };
-                VesselState.gimbalExtDict.Add("KM_Gimbal", kmGimbal);
+                VesselState.AddGimbalExtension<KM_Gimbal_3>(new VesselState.GimbalExt() { isValid = KM_GimbalIsValid, initialRot = KM_GimbalInitialRot, torqueVector = KM_GimbalTorqueVector });
             }
         }
     }
