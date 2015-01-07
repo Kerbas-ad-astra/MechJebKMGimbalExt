@@ -9,18 +9,18 @@ using System.Reflection;
 
 namespace MuMech
 {
-    public class MechJebKMGimbalExt : ComputerModule
+    public class MechJebKMGimbal3Ext : ComputerModule
     {
-        public MechJebKMGimbalExt(MechJebCore core) : base(core) { }
+        public MechJebKMGimbal3Ext(MechJebCore core) : base(core) { }
         bool isKMLoaded = false;
         
-        private bool KM_GimbalIsValid(PartModule p)
+        private static bool KM_GimbalIsValid(PartModule p)
         {
             KM_Gimbal_3 gimbal = p as KM_Gimbal_3;
-            return gimbal.initRots.Count() > 0;
+            return gimbal.initRots.Any();
         }
 
-        private Vector3d KM_GimbalTorqueVector(PartModule p, int i, Vector3d CoM)
+        private static Vector3d KM_GimbalTorqueVector(PartModule p, int i, Vector3d CoM)
         {
             KM_Gimbal_3 gimbal = p as KM_Gimbal_3;
             Vector3d torque = Vector3d.zero;
@@ -47,7 +47,7 @@ namespace MuMech
             return torque;
         }
 
-        private Quaternion KM_GimbalInitialRot(PartModule p, Transform engineTransform, int i)
+        private static Quaternion KM_GimbalInitialRot(PartModule p, Transform engineTransform, int i)
         {
             KM_Gimbal_3 gimbal = p as KM_Gimbal_3;
             // Save the current local rot
@@ -63,9 +63,9 @@ namespace MuMech
         public override void OnStart(PartModule.StartState state)
         {
             isKMLoaded = AssemblyLoader.loadedAssemblies.Any(a => a.assembly.GetName().Name == "km_Gimbal");
-            print("MechJebKMGimbalExt adding MJ2 callback");
+            print("MechJebKMGimbal3Ext adding MJ2 callback");
 
-            if(!VesselState.SupportsGimbalExtension<KM_Gimbal_3>())
+            if(isKMLoaded && !VesselState.SupportsGimbalExtension<KM_Gimbal_3>())
             {
                 VesselState.AddGimbalExtension<KM_Gimbal_3>(new VesselState.GimbalExt() { isValid = KM_GimbalIsValid, initialRot = KM_GimbalInitialRot, torqueVector = KM_GimbalTorqueVector });
             }
