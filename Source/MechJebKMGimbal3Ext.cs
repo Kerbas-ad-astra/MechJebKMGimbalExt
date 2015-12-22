@@ -27,17 +27,15 @@ namespace MuMech
 
             if (!gimbal.enableGimbal)
                 return Vector3d.zero;
-
-            float maxPitchGimbalRange = Math.Min(gimbal.pitchGimbalRange, gimbal.gimbalConstrain);
-            float maxYawGimbalRange = Math.Min(gimbal.pitchGimbalRange, gimbal.gimbalConstrain);
-            float maxRollGimbalRange = Math.Max(maxPitchGimbalRange, maxYawGimbalRange);
+            
+            float maxRollGimbalRange = Math.Max(gimbal.pitchGimbalRange, gimbal.yawGimbalRange);
 
             Vector3d position = gimbal.gimbalTransforms[i].position - CoM;
             double distance = position.magnitude;
-            double radius = Vector3.Exclude(Vector3.Project(position, p.vessel.ReferenceTransform.up), position).magnitude;
+            double radius = Vector3.ProjectOnPlane(position, Vector3.Project(position, p.vessel.ReferenceTransform.up)).magnitude;
 
-            torque.x = Math.Sin(Math.Abs(maxPitchGimbalRange) * Math.PI / 180d) * distance;
-            torque.z = Math.Sin(Math.Abs(maxYawGimbalRange) * Math.PI / 180d) * distance;
+            torque.x = Math.Sin(Math.Abs(gimbal.pitchGimbalRange) * Math.PI / 180d) * distance;
+            torque.z = Math.Sin(Math.Abs(gimbal.yawGimbalRange) * Math.PI / 180d) * distance;
 
             if (gimbal.enableRoll)
             {
